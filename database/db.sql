@@ -1,7 +1,6 @@
 CREATE TABLE tournois (
     id SERIAL PRIMARY KEY,
     nom VARCHAR(255) NOT NULL,
-    date_creation TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE joueurs (
