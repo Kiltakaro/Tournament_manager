@@ -1,7 +1,7 @@
 # Tournament Manager
 
 Team :  
-- Loan
-- Hugo 
-- Yani
-- Brice
+- Loan Labastie
+- Hugo Martinez
+- Yani Grandjean
+- Brice Morand

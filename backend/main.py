@@ -137,6 +137,41 @@ def get_tournoi_id_by_name(nom: str):
     except Exception as e:
         logger.error(f"Database error: {e}")
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    
+def get_tournoi_by_id(tournoi_id: int):
+    try:
+        cursor.execute(
+            f"SELECT * FROM tournois WHERE id = {tournoi_id};"
+        )
+        tournoi = cursor.fetchone()
+        if tournoi:
+            return tournoi
+        else:
+            raise HTTPException(status_code=404, detail="Tournoi not found")
+    except Exception as e:
+        logger.error(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    
+def delete_tournoi_in_db(tournoi_id: int):
+    try:
+        tournoi = get_tournoi_by_id(tournoi_id)
+
+    except Exception as e:
+        logger.error(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    
+    if tournoi:
+        try:
+            cursor.execute(
+                f"DELETE FROM tournois WHERE id = {tournoi_id};"
+            )
+            return True
+        
+        except Exception as e:
+            logger.error(f"Database error: {e}")
+            raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    else:
+        return False
 
 # Route pour créer un tournoi
 @app.post("/tournois/")
@@ -167,3 +202,8 @@ def get_joueurs(tournoi_id: int):
 def get_tournoi_id(nom: str):
     tournoi_id = get_tournoi_id_by_name(nom)
     return tournoi_id
+
+@app.delete("/tournois/{tournoi_id}")
+def delete_tournoi(tournoi_id: int):
+    delete_tournoi_in_db(tournoi_id)
+    return
