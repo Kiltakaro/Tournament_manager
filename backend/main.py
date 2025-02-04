@@ -51,23 +51,30 @@ class Match(BaseModel):
     gagnant_id: int = None
 
 
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Fonction pour créer un tournoi dans la base de données
+def create_tournoi_in_db(tournoi: Tournoi):
+    try:
+        cursor.execute(
+            "INSERT INTO tournois (nom) VALUES (%s) RETURNING id;",
+            (tournoi.nom,)
+        )
+        tournoi_id = cursor.fetchone()[0]
+        db_connection.commit()
+        return tournoi_id
+    except Exception as e:
+        db_connection.rollback()
+        logger.error(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
 
 # Route pour créer un tournoi
 @app.post("/tournois/")
 def create_tournoi(tournoi: Tournoi):
     tournoi_id = create_tournoi_in_db(tournoi)
     return {"nom": tournoi.nom}
-
-
-# Fonction pour créer un tournoi dans la base de données
-def create_tournoi_in_db(tournoi: Tournoi):
-    try:
-        cursor.execute(
-            "INSERT INTO tournois (nom) VALUES (%s);",
-            (tournoi.nom)
-        )
-        db_connection.commit()
-        
-    except Exception as e:
-        db_connection.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {e}")

@@ -1,6 +1,6 @@
 CREATE TABLE tournois (
     id SERIAL PRIMARY KEY,
-    nom VARCHAR(255) NOT NULL,
+    nom VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE joueurs (
