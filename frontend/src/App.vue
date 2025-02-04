@@ -20,7 +20,11 @@
       <form @submit.prevent="inscrireJoueur">
         <div class="form-group">
           <label for="tournoiNom">Nom du Tournoi:</label>
-          <input v-model="tournoiNom" type="text" id="tournoiNom" required />
+          <select v-model="tournoiNom" id="tournoiNom" required>
+            <option v-for="tournoi in tournois" :key="tournoi.id" :value="tournoi.nom">
+              {{ tournoi.nom }}
+            </option>
+          </select>
         </div>
         <div class="form-group">
           <label for="nomJoueur">Nom du Joueur:</label>
@@ -155,7 +159,7 @@ label {
   color: #333;
 }
 
-input {
+input, select {
   width: 100%;
   padding: 8px;
   box-sizing: border-box;
