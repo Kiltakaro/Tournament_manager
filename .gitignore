@@ -1,4 +1,5 @@
 .venv/
+tournoi/
 __pycache__/
 app1.py
 app2.py
