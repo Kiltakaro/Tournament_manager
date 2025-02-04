@@ -40,6 +40,7 @@
       <ul>
         <li v-for="tournoi in tournois" :key="tournoi.id" @click="fetchJoueurs(tournoi.nom)">
           {{ tournoi.nom }}
+          <button @click="deleteTournoi(tournoi.id)">Supprimer</button>
           <ul v-if="joueurs[tournoi.nom] && joueurs[tournoi.nom].length > 0">
             <li v-for="joueur in joueurs[tournoi.nom]" :key="joueur.id">
               {{ joueur.nom }}
@@ -114,6 +115,16 @@ export default {
         .catch(error => {
           console.error("Erreur lors de la récupération des joueurs", error);
         });
+    },
+
+    deleteTournoi(tournoiId) {
+      axios.delete(`http://localhost:5000/tournois/${tournoiId}`)
+      .then(() => {
+        this.fetchTournois();
+      })
+      .catch(error => {
+        console.error("Erreur lors de la suppression du tournoi", error);
+      })
     }
   },
   mounted() {
