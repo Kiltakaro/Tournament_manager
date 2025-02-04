@@ -51,7 +51,6 @@ class Match(BaseModel):
     score_joueur2: int = 0
     gagnant_id: int = None
 
-
 import logging
 
 # Configure logging
@@ -104,6 +103,111 @@ def create_joueur_in_db(joueur: Joueur):
         joueur_id = cursor.fetchone()[0]
         db_connection.commit()
         return joueur_id
+    except Exception as e:
+        db_connection.rollback()
+        logger.error(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    
+def create_match_in_db(match: Match):
+    try:
+        # Récupérer l'ID du tournoi
+        cursor.execute(
+            "SELECT id FROM tournois WHERE nom = %s;",
+            (match.tournoi_nom,)
+        )
+        tournoi = cursor.fetchone()
+        if not tournoi:
+            raise HTTPException(status_code=404, detail="Tournoi not found")
+        tournoi_id = tournoi[0]
+
+        # Récupérer les IDs des joueurs
+        cursor.execute(
+            "SELECT id FROM joueurs WHERE nom = %s AND tournoi_id = %s;",
+            (match.joueur1_nom, tournoi_id)
+        )
+        joueur1 = cursor.fetchone()
+        if not joueur1:
+            raise HTTPException(status_code=404, detail="Joueur 1 not found")
+
+        cursor.execute(
+            "SELECT id FROM joueurs WHERE nom = %s AND tournoi_id = %s;",
+            (match.joueur2_nom, tournoi_id)
+        )
+        joueur2 = cursor.fetchone()
+        if not joueur2:
+            raise HTTPException(status_code=404, detail="Joueur 2 not found")
+
+        # Insérer le match
+        cursor.execute(
+            "INSERT INTO matchs (tournoi_id, joueur1_id, joueur2_id, phase) VALUES (%s, %s, %s, %s) RETURNING id;",
+            (tournoi_id, joueur1[0], joueur2[0], match.phase)
+        )
+        match_id = cursor.fetchone()[0]
+        db_connection.commit()
+        return match_id
+    except Exception as e:
+        db_connection.rollback()
+        logger.error(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+def get_matchs_by_tournoi(nom: str):
+    try:
+        cursor.execute(
+            "SELECT id FROM tournois WHERE nom = %s;",
+            (nom,)
+        )
+        tournoi = cursor.fetchone()
+        if not tournoi:
+            raise HTTPException(status_code=404, detail="Tournoi not found")
+        
+        tournoi_id = tournoi[0]
+        
+        cursor.execute(
+            "SELECT id, joueur1_id, joueur2_id, phase, score_joueur1, score_joueur2 FROM matchs WHERE tournoi_id = %s;",
+            (tournoi_id,)
+        )
+        matchs = cursor.fetchall()
+        
+        results = []
+        for match in matchs:
+            cursor.execute("SELECT nom FROM joueurs WHERE id = %s;", (match[1],))
+            joueur1 = cursor.fetchone()[0]
+
+            cursor.execute("SELECT nom FROM joueurs WHERE id = %s;", (match[2],))
+            joueur2 = cursor.fetchone()[0]
+
+            results.append({
+                "id": match[0],
+                "joueur1_nom": joueur1,
+                "joueur2_nom": joueur2,
+                "phase": match[3],
+                "score_joueur1": match[4],
+                "score_joueur2": match[5]
+            })
+        
+        return results
+    except Exception as e:
+        logger.error(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    
+def update_match_score(match_id: int, update: Match):
+    try:
+        cursor.execute(
+            "UPDATE matchs SET score_joueur1 = %s, score_joueur2 = %s WHERE id = %s RETURNING joueur1_id, joueur2_id;",
+            (update.score_joueur1, update.score_joueur2, match_id)
+        )
+        result = cursor.fetchone()
+        if not result:
+            raise HTTPException(status_code=404, detail="Match not found")
+
+        # Déterminer le gagnant
+        gagnant_id = result[0] if update.score_joueur1 > update.score_joueur2 else result[1]
+        cursor.execute(
+            "UPDATE matchs SET gagnant_id = %s WHERE id = %s;",
+            (gagnant_id, match_id)
+        )
+        db_connection.commit()
+        return {"match_id": match_id, "gagnant_id": gagnant_id}
     except Exception as e:
         db_connection.rollback()
         logger.error(f"Database error: {e}")
@@ -202,6 +306,21 @@ def get_joueurs(tournoi_id: int):
 def get_tournoi_id(nom: str):
     tournoi_id = get_tournoi_id_by_name(nom)
     return tournoi_id
+
+@app.post("/matchs/")
+def create_match(match: Match):
+    match_id = create_match_in_db(match)
+    return {"id": match_id, "tournoi_nom": match.tournoi_nom, "joueur1_nom": match.joueur1_nom, "joueur2_nom": match.joueur2_nom, "phase": match.phase}
+
+@app.get("/tournois/{nom}/matchs/")
+def get_matchs(nom: str):
+    matchs = get_matchs_by_tournoi(nom)
+    return matchs
+
+@app.put("/matchs/{match_id}/score/")
+def update_score(match_id: int, update: Match):
+    return update_match_score(match_id, update)
+
 
 @app.delete("/tournois/{tournoi_id}")
 def delete_tournoi(tournoi_id: int):
